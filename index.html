@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Expense Splitter</title>
+
+<style>
+:root {
+  --bg:#f5f5f5; --card:#fff; --text:#111;
+    --accent:#2563eb; --border:#ddd;
+    }
+    body.dark {
+      --bg:#0f172a; --card:#1e293b; --text:#e5e7eb;
+        --accent:#60a5fa; --border:#334155;
+        }
+        *{box-sizing:border-box}
+        body{
+          margin:0;font-family:system-ui,sans-serif;
+            background:var(--bg);color:var(--text)
+            }
+            .container{max-width:720px;margin:auto;padding:20px}
+            header{display:flex;justify-content:space-between;align-items:center}
+            h1{font-size:1.4rem}
+            button{
+              background:var(--accent);color:#fff;border:none;
+                padding:8px 12px;border-radius:6px;cursor:pointer
+                }
+                button.secondary{
+                  background:transparent;color:var(--accent);
+                    border:1px solid var(--accent)
+                    }
+                    .card{
+                      background:var(--card);border:1px solid var(--border);
+                        border-radius:12px;padding:16px;margin-top:16px
+                        }
+                        .form{display:flex;gap:8px;flex-wrap:wrap}
+                        input{
+                          flex:1;padding:8px;border-radius:6px;
+                            border:1px solid var(--border);
+                              background:transparent;color:var(--text)
+                              }
+                              .list-item{
+                                display:flex;justify-content:space-between;
+                                  align-items:center;margin-top:8px;gap:8px
+                                  }
+                                  .actions button{padding:4px 8px;font-size:.8rem}
+                                  ul{padding-left:20px}
+                                  #qr{margin-top:12px;text-align:center}
+                                  @media(max-width:600px){.form{flex-direction:column}}
+                                  </style>
+                                  </head>
+
+                                  <body>
+                                  <div class="container">
+
+                                  <header>
+                                    <h1>💸 Expense Splitter</h1>
+                                      <button class="secondary" onclick="toggleDark()">🌙</button>
+                                      </header>
+
+                                      <div class="card">
+                                        <div class="form">
+                                            <input id="name" placeholder="Name">
+                                                <input id="amount" type="number" placeholder="Paid">
+                                                    <button onclick="addPerson()">Add</button>
+                                                      </div>
+                                                      </div>
+
+                                                      <div class="card" id="peopleList"><h3>People</h3></div>
+
+                                                      <div class="card">
+                                                        <button onclick="calculate()">Calculate</button>
+                                                          <button class="secondary" onclick="copyLink()">Share</button>
+                                                            <button class="secondary" onclick="generateQR()">QR</button>
+                                                              <div id="output"></div>
+                                                                <div id="qr"></div>
+                                                                </div>
+
+                                                                </div>
+
+                                                                <script>
+                                                                /* ---------- State ---------- */
+                                                                let people = [];
+                                                                let editIndex = null;
+
+                                                                /* ---------- Dark Mode ---------- */
+                                                                function toggleDark(){
+                                                                  document.body.classList.toggle("dark");
+                                                                    localStorage.setItem("dark",document.body.classList.contains("dark"));
+                                                                    }
+                                                                    if(localStorage.getItem("dark")==="true")toggleDark();
+
+                                                                    /* ---------- URL HASH STATE ---------- */
+                                                                    function encodeState(){
+                                                                      const data=btoa(JSON.stringify({people}));
+                                                                        location.hash="data="+data;
+                                                                        }
+                                                                        function decodeState(){
+                                                                          if(!location.hash.startsWith("#data="))return;
+                                                                            try{
+                                                                                const decoded=JSON.parse(atob(location.hash.slice(6)));
+                                                                                    if(decoded.people){people=decoded.people;render()}
+                                                                                      }catch{}
+                                                                                      }
+                                                                                      decodeState();
+
+                                                                                      /* ---------- CRUD ---------- */
+                                                                                      function addPerson(){
+                                                                                        const name=nameInput.value.trim();
+                                                                                          const amount=parseFloat(amountInput.value);
+                                                                                            if(!name||isNaN(amount))return;
+                                                                                              if(editIndex!==null){
+                                                                                                  people[editIndex]={name,amount};
+                                                                                                      editIndex=null;
+                                                                                                        }else people.push({name,amount});
+                                                                                                          nameInput.value=amountInput.value="";
+                                                                                                            render();encodeState();
+                                                                                                            }
+                                                                                                            function editPerson(i){
+                                                                                                              nameInput.value=people[i].name;
+                                                                                                                amountInput.value=people[i].amount;
+                                                                                                                  editIndex=i;
+                                                                                                                  }
+                                                                                                                  function deletePerson(i){
+                                                                                                                    people.splice(i,1);
+                                                                                                                      render();encodeState();
+                                                                                                                      }
+
+                                                                                                                      /* ---------- Render ---------- */
+                                                                                                                      const nameInput=document.getElementById("name");
+                                                                                                                      const amountInput=document.getElementById("amount");
+                                                                                                                      function render(){
+                                                                                                                        peopleList.innerHTML="<h3>People</h3>";
+                                                                                                                          people.forEach((p,i)=>{
+                                                                                                                              peopleList.innerHTML+=`
+                                                                                                                                    <div class="list-item">
+                                                                                                                                            <span>${p.name} — ${p.amount}</span>
+                                                                                                                                                    <div class="actions">
+                                                                                                                                                              <button class="secondary" onclick="editPerson(${i})">Edit</button>
+                                                                                                                                                                        <button onclick="deletePerson(${i})">Delete</button>
+                                                                                                                                                                                </div>
+                                                                                                                                                                                      </div>`;
+                                                                                                                                                                                        });
+                                                                                                                                                                                        }
+
+                                                                                                                                                                                        /* ---------- Calculation ---------- */
+                                                                                                                                                                                        function calculate(){
+                                                                                                                                                                                          if(!people.length)return;
+                                                                                                                                                                                            const total=people.reduce((s,p)=>s+p.amount,0);
+                                                                                                                                                                                              const share=+(total/people.length).toFixed(2);
+
+                                                                                                                                                                                                let bal=people.map(p=>({name:p.name,b:+(p.amount-share).toFixed(2)}));
+                                                                                                                                                                                                  let cred=bal.filter(x=>x.b>0);
+                                                                                                                                                                                                    let debt=bal.filter(x=>x.b<0).map(x=>({name:x.name,b:-x.b}));
+
+                                                                                                                                                                                                      let i=0,j=0,tx=[];
+                                                                                                                                                                                                        while(i<debt.length&&j<cred.length){
+                                                                                                                                                                                                            const amt=Math.min(debt[i].b,cred[j].b);
+                                                                                                                                                                                                                tx.push(`${debt[i].name} → ${cred[j].name}: ${amt.toFixed(2)}`);
+                                                                                                                                                                                                                    debt[i].b-=amt;cred[j].b-=amt;
+                                                                                                                                                                                                                        if(debt[i].b===0)i++;
+                                                                                                                                                                                                                            if(cred[j].b===0)j++;
+                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                output.innerHTML=`
+                                                                                                                                                                                                                                    <p><strong>Each pays:</strong> ${share}</p>
+                                                                                                                                                                                                                                        <h4>Transactions</h4>
+                                                                                                                                                                                                                                            ${tx.length?`<ul>${tx.map(t=>`<li>${t}</li>`).join("")}</ul>`:"None"}
+                                                                                                                                                                                                                                              `;
+                                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                              /* ---------- Share ---------- */
+                                                                                                                                                                                                                                              function copyLink(){
+                                                                                                                                                                                                                                                navigator.clipboard.writeText(location.href);
+                                                                                                                                                                                                                                                  alert("Link copied!");
+                                                                                                                                                                                                                                                  }
+
+                                                                                                                                                                                                                                                  /* ---------- QR Code ---------- */
+                                                                                                                                                                                                                                                  function generateQR(){
+                                                                                                                                                                                                                                                    const url=encodeURIComponent(location.href);
+                                                                                                                                                                                                                                                      qr.innerHTML=`
+                                                                                                                                                                                                                                                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${url}">
+                                                                                                                                                                                                                                                              <p>Scan to open</p>`;
+                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                              </script>
+
+                                                                                                                                                                                                                                                              </body>
+                                                                                                                                                                                                                                                              </html>
