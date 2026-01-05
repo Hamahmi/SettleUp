@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>SettleUp – Expense Splitter</title>
-  <meta name="description" content="Free expense splitter to fairly split bills and settle group expenses instantly.">
+  <meta name="description" content="Free expense splitter to fairly split bills and settle group expenses instantly." />
 
   <style>
     :root {
@@ -23,183 +23,169 @@
       --text:#e5e7eb;
       --accent:#60a5fa;
       --border:#334155;
-      --toast:#0f172a;
+      --toast:#000;
+    }
+
+    * { box-sizing: border-box }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
     }
 
     body[dir="rtl"] {
+      direction: rtl;
       text-align: right;
     }
 
-    * { box-sizing: border-box; }
-
-    body {
-      margin:0;
-      font-family: system-ui, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-
     .container {
-      max-width:720px;
-      margin:auto;
-      padding:20px;
+      max-width: 720px;
+      margin: auto;
+      padding: 20px;
     }
 
     header {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
-    h1 { font-size:1.4rem; }
-
-    .header-actions {
-      display:flex;
-      gap:6px;
+    h1 {
+      font-size: 1.4rem;
+      margin: 0;
     }
 
     button {
-      background:var(--accent);
-      color:#fff;
-      border:none;
-      padding:6px 10px;
-      border-radius:6px;
-      cursor:pointer;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     button.secondary {
-      background:transparent;
-      color:var(--accent);
-      border:1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
     }
 
     .card {
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:16px;
-      margin-top:16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
     }
 
     .form {
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     input {
-      flex:1;
-      padding:8px;
-      border-radius:6px;
-      border:1px solid var(--border);
-      background:transparent;
-      color:var(--text);
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
     }
 
     .list-item {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:8px;
-      gap:8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      gap: 8px;
     }
 
     .actions button {
-      padding:4px 8px;
-      font-size:.8rem;
+      padding: 4px 8px;
+      font-size: .8rem;
     }
 
     ul {
-      padding-left:20px;
-    }
-
-    body[dir="rtl"] ul {
-      padding-left:0;
-      padding-right:20px;
+      padding-left: 20px;
     }
 
     #qr {
-      margin-top:12px;
-      text-align:center;
+      margin-top: 12px;
+      text-align: center;
     }
 
-    /* ---------- Toast ---------- */
+    /* Toast */
     .toast {
-      position:fixed;
-      bottom:20px;
-      left:50%;
-      transform:translateX(-50%);
-      background:var(--toast);
-      color:#fff;
-      padding:12px 16px;
-      border-radius:10px;
-      min-width:260px;
-      opacity:0;
-      pointer-events:none;
-      transition:.25s;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--toast);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
     }
 
     .toast.show {
-      opacity:1;
-      pointer-events:auto;
-      transform:translateX(-50%) translateY(-6px);
+      opacity: 0.9;
     }
 
-    .toast-actions {
-      display:flex;
-      gap:8px;
-      margin-top:8px;
-      justify-content:flex-end;
-    }
-
-    @media(max-width:600px){
-      .form { flex-direction:column; }
+    @media (max-width: 600px) {
+      .form { flex-direction: column }
     }
   </style>
 </head>
 
 <body>
-<div class="container">
+  <div class="container">
 
-  <header>
-    <h1 id="title">💸 SettleUp</h1>
-    <div class="header-actions">
-      <button class="secondary" onclick="toggleLang()">AR</button>
-      <button class="secondary" onclick="toggleDark()">🌙</button>
+    <header>
+      <h1 id="title">💸 SettleUp</h1>
+      <div>
+        <button class="secondary" onclick="toggleLang()">🌐</button>
+        <button class="secondary" onclick="toggleDark()">🌙</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="form">
+        <input id="name" placeholder="Name" />
+        <input id="amount" type="number" placeholder="Paid" />
+        <button onclick="addPerson()">Add</button>
+      </div>
     </div>
-  </header>
 
-  <div class="card">
-    <div class="form">
-      <input id="name" placeholder="Name">
-      <input id="amount" type="number" placeholder="Paid">
-      <button onclick="addPerson()" id="addBtn">Add</button>
+    <div class="card" id="peopleList">
+      <h3>People</h3>
     </div>
+
+    <div class="card">
+      <button onclick="calculate()">Calculate</button>
+      <button class="secondary" onclick="copyLink()">Share</button>
+      <button class="secondary" onclick="generateQR()">QR</button>
+
+      <div id="output"></div>
+      <div id="qr"></div>
+    </div>
+
   </div>
 
-  <div class="card" id="peopleList">
-    <h3 id="peopleTitle">People</h3>
-  </div>
-
-  <div class="card">
-    <button onclick="calculate()" id="calcBtn">Calculate</button>
-    <button class="secondary" onclick="copyLink()" id="shareBtn">Share</button>
-    <button class="secondary" onclick="generateQR()">QR</button>
-    <div id="output"></div>
-    <div id="qr"></div>
-  </div>
-
-</div>
-
-<div id="toast" class="toast"></div>
+  <div class="toast" id="toast"></div>
 
 <script>
-/* ---------- State ---------- */
+/* ------------------ State ------------------ */
 let people = [];
-let lang = localStorage.getItem("lang") || "en";
+let editIndex = null;
+let currentLang = "en";
 
-/* ---------- Elements ---------- */
+/* ------------------ Elements ------------------ */
 const nameInput = document.getElementById("name");
 const amountInput = document.getElementById("amount");
 const peopleList = document.getElementById("peopleList");
@@ -207,154 +193,174 @@ const output = document.getElementById("output");
 const qr = document.getElementById("qr");
 const toast = document.getElementById("toast");
 
-/* ---------- i18n ---------- */
-const i18n = {
-  en: {
-    title: "💸 SettleUp",
-    name: "Name",
-    paid: "Paid",
-    add: "Add",
-    people: "People",
-    calc: "Calculate",
-    share: "Share",
-    each: "Each pays",
-    transactions: "Transactions",
-    exists: "already exists"
-  },
-  ar: {
-    title: "💸 تسوية",
-    name: "الاسم",
-    paid: "المبلغ",
-    add: "إضافة",
-    people: "الأشخاص",
-    calc: "احسب",
-    share: "مشاركة",
-    each: "حصة الفرد",
-    transactions: "المعاملات",
-    exists: "موجود بالفعل"
-  }
-};
-
-function applyLang() {
-  document.documentElement.lang = lang;
-  document.body.dir = lang === "ar" ? "rtl" : "ltr";
-
-  title.textContent = i18n[lang].title;
-  nameInput.placeholder = i18n[lang].name;
-  amountInput.placeholder = i18n[lang].paid;
-  addBtn.textContent = i18n[lang].add;
-  peopleTitle.textContent = i18n[lang].people;
-  calcBtn.textContent = i18n[lang].calc;
-  shareBtn.textContent = i18n[lang].share;
+/* ------------------ Utils ------------------ */
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2500);
 }
 
-function toggleLang() {
-  lang = lang === "en" ? "ar" : "en";
-  localStorage.setItem("lang", lang);
-  applyLang();
-}
-
-applyLang();
-
-/* ---------- Dark Mode ---------- */
-function toggleDark() {
-  document.body.classList.toggle("dark");
-}
-
-/* ---------- Helpers ---------- */
 function normalizeName(name) {
-  if (/^[a-zA-Z]/.test(name)) {
+  if (/^[A-Za-z]/.test(name)) {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   }
   return name;
 }
 
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2200);
+/* ------------------ Dark Mode ------------------ */
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark", document.body.classList.contains("dark"));
+}
+if (localStorage.getItem("dark") === "true") toggleDark();
+
+/* ------------------ Language / RTL ------------------ */
+function setLanguage(lang) {
+  currentLang = lang;
+  document.body.dir = lang === "ar" ? "rtl" : "ltr";
+}
+function toggleLang() {
+  setLanguage(currentLang === "en" ? "ar" : "en");
+  encodeState();
 }
 
-/* ---------- CRUD ---------- */
+/* ------------------ URL State ------------------ */
+function encodeState() {
+  const state = { v: 2, people, lang: currentLang };
+  const json = JSON.stringify(state);
+  const base64 = btoa(unescape(encodeURIComponent(json)));
+  location.hash = "data=" + base64;
+}
+
+function decodeState() {
+  if (!location.hash.startsWith("#data=")) return;
+
+  try {
+    const raw = location.hash.slice(6);
+    const json = decodeURIComponent(escape(atob(raw)));
+    const decoded = JSON.parse(json);
+
+    if (Array.isArray(decoded)) {
+      people = decoded;
+    } else if (decoded?.people) {
+      people = decoded.people;
+      if (decoded.lang) setLanguage(decoded.lang);
+    }
+
+    render();
+    calculate();
+  } catch {
+    console.warn("Invalid shared link");
+  }
+}
+decodeState();
+
+/* ------------------ CRUD ------------------ */
 function addPerson() {
-  let name = nameInput.value.trim();
+  let name = normalizeName(nameInput.value.trim());
   const amount = parseFloat(amountInput.value);
   if (!name || isNaN(amount)) return;
 
-  name = normalizeName(name);
   const idx = people.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
 
-  if (idx !== -1) {
-    people[idx].amount += amount;
-    showToast(`${name} ${i18n[lang].exists}`);
+  if (idx !== -1 && editIndex === null) {
+    const add = confirm("Person exists. Add amount instead?");
+    people[idx].amount = add ? people[idx].amount + amount : amount;
+    showToast(add ? "Amount added" : "Amount replaced");
+  } else if (editIndex !== null) {
+    people[editIndex] = { name, amount };
+    editIndex = null;
   } else {
     people.push({ name, amount });
   }
 
   nameInput.value = "";
   amountInput.value = "";
+
   render();
   calculate();
+  encodeState();
 }
 
-/* ---------- Render ---------- */
+function editPerson(i) {
+  nameInput.value = people[i].name;
+  amountInput.value = people[i].amount;
+  editIndex = i;
+}
+
+function deletePerson(i) {
+  people.splice(i, 1);
+  render();
+  calculate();
+  encodeState();
+}
+
+/* ------------------ Render ------------------ */
 function render() {
-  peopleList.innerHTML = `<h3>${i18n[lang].people}</h3>`;
+  peopleList.innerHTML = "<h3>People</h3>";
   people.forEach((p, i) => {
     peopleList.innerHTML += `
       <div class="list-item">
         <span>${p.name} — ${p.amount}</span>
         <div class="actions">
-          <button onclick="people.splice(${i},1); render(); calculate();">✕</button>
+          <button class="secondary" onclick="editPerson(${i})">Edit</button>
+          <button onclick="deletePerson(${i})">Delete</button>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 }
 
-/* ---------- Calculation (Grouped) ---------- */
+/* ------------------ Calculation ------------------ */
 function calculate() {
   if (!people.length) return;
 
-  const total = people.reduce((s,p)=>s+p.amount,0);
+  const total = people.reduce((s, p) => s + p.amount, 0);
   const share = +(total / people.length).toFixed(2);
 
-  let bal = people.map(p => ({ name:p.name, b:+(p.amount-share).toFixed(2) }));
-  let cred = bal.filter(x=>x.b>0);
-  let debt = bal.filter(x=>x.b<0).map(x=>({name:x.name,b:-x.b}));
+  const bal = people.map(p => ({
+    name: p.name,
+    b: +(p.amount - share).toFixed(2)
+  }));
 
+  const cred = bal.filter(x => x.b > 0);
+  const debt = bal.filter(x => x.b < 0).map(x => ({ name: x.name, b: -x.b }));
+
+  let i = 0, j = 0;
   const grouped = {};
 
-  let i=0,j=0;
-  while(i<debt.length && j<cred.length){
+  while (i < debt.length && j < cred.length) {
     const amt = Math.min(debt[i].b, cred[j].b);
     grouped[debt[i].name] ??= [];
-    grouped[debt[i].name].push(`${cred[j].name} : ${amt.toFixed(2)}`);
+    grouped[debt[i].name].push(
+      `${debt[i].name} → ${cred[j].name} : ${amt.toFixed(2)}`
+    );
     debt[i].b -= amt;
     cred[j].b -= amt;
-    if(!debt[i].b) i++;
-    if(!cred[j].b) j++;
+    if (debt[i].b === 0) i++;
+    if (cred[j].b === 0) j++;
   }
 
   output.innerHTML = `
-    <p><strong>${i18n[lang].each}:</strong> ${share}</p>
-    <h4>${i18n[lang].transactions}</h4>
-    ${Object.entries(grouped).map(([k,v])=>`
-      <p><strong>${k}</strong></p>
-      <ul>${v.map(t=>`<li>→ ${t}</li>`).join("")}</ul>
-    `).join("")}
+    <p><strong>Each pays:</strong> ${share}</p>
+    ${Object.entries(grouped).map(([k,v]) =>
+      `<h4>${k}</h4><ul>${v.map(t=>`<li>${t}</li>`).join("")}</ul>`
+    ).join("")}
   `;
 }
 
-/* ---------- Share ---------- */
+/* ------------------ Share ------------------ */
 function copyLink() {
   navigator.clipboard.writeText(location.href);
-  showToast("Copied");
+  showToast("Link copied");
 }
 
 function generateQR() {
-  qr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(location.href)}">`;
+  const url = encodeURIComponent(location.href);
+  qr.innerHTML = `
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${url}">
+    <p>Scan to open</p>`;
 }
 </script>
+
 </body>
 </html>
