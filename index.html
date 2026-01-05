@@ -147,7 +147,7 @@
   <div class="container">
 
     <header>
-      <h1 id="title">💸 SettleUp</h1>
+      <h1>💸 SettleUp</h1>
       <div>
         <button class="secondary" onclick="toggleLang()">🌐</button>
         <button class="secondary" onclick="toggleDark()">🌙</button>
@@ -167,10 +167,8 @@
     </div>
 
     <div class="card">
-      <button onclick="calculate()">Calculate</button>
       <button class="secondary" onclick="copyLink()">Share</button>
       <button class="secondary" onclick="generateQR()">QR</button>
-
       <div id="output"></div>
       <div id="qr"></div>
     </div>
@@ -184,6 +182,7 @@
 let people = [];
 let editIndex = null;
 let currentLang = "en";
+let isDecoding = false;
 
 /* ------------------ Elements ------------------ */
 const nameInput = document.getElementById("name");
@@ -215,17 +214,19 @@ function toggleDark() {
 if (localStorage.getItem("dark") === "true") toggleDark();
 
 /* ------------------ Language / RTL ------------------ */
-function setLanguage(lang) {
+function setLanguage(lang, silent = false) {
   currentLang = lang;
   document.body.dir = lang === "ar" ? "rtl" : "ltr";
+  if (!silent) encodeState();
 }
 function toggleLang() {
   setLanguage(currentLang === "en" ? "ar" : "en");
-  encodeState();
 }
 
 /* ------------------ URL State ------------------ */
 function encodeState() {
+  if (isDecoding) return;
+
   const state = { v: 2, people, lang: currentLang };
   const json = JSON.stringify(state);
   const base64 = btoa(unescape(encodeURIComponent(json)));
@@ -235,36 +236,38 @@ function encodeState() {
 function decodeState() {
   if (!location.hash.startsWith("#data=")) return;
 
+  isDecoding = true;
   try {
     const raw = location.hash.slice(6);
     const json = decodeURIComponent(escape(atob(raw)));
     const decoded = JSON.parse(json);
 
-    if (Array.isArray(decoded)) {
-      people = decoded;
-    } else if (decoded?.people) {
+    // Legacy & v2 support
+    if (Array.isArray(decoded?.people)) {
       people = decoded.people;
-      if (decoded.lang) setLanguage(decoded.lang);
+      if (decoded.lang) setLanguage(decoded.lang, true);
     }
 
     render();
     calculate();
-  } catch {
-    console.warn("Invalid shared link");
+  } catch (e) {
+    console.warn("Invalid shared link", e);
+  } finally {
+    isDecoding = false;
   }
 }
 decodeState();
 
 /* ------------------ CRUD ------------------ */
 function addPerson() {
-  let name = normalizeName(nameInput.value.trim());
+  const name = normalizeName(nameInput.value.trim());
   const amount = parseFloat(amountInput.value);
   if (!name || isNaN(amount)) return;
 
   const idx = people.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
 
   if (idx !== -1 && editIndex === null) {
-    const add = confirm("Person exists. Add amount instead?");
+    const add = window.confirm("Person exists.\nOK = Add amount\nCancel = Replace");
     people[idx].amount = add ? people[idx].amount + amount : amount;
     showToast(add ? "Amount added" : "Amount replaced");
   } else if (editIndex !== null) {
@@ -312,7 +315,10 @@ function render() {
 
 /* ------------------ Calculation ------------------ */
 function calculate() {
-  if (!people.length) return;
+  if (!people.length) {
+    output.innerHTML = "";
+    return;
+  }
 
   const total = people.reduce((s, p) => s + p.amount, 0);
   const share = +(total / people.length).toFixed(2);
@@ -342,8 +348,8 @@ function calculate() {
 
   output.innerHTML = `
     <p><strong>Each pays:</strong> ${share}</p>
-    ${Object.entries(grouped).map(([k,v]) =>
-      `<h4>${k}</h4><ul>${v.map(t=>`<li>${t}</li>`).join("")}</ul>`
+    ${Object.entries(grouped).map(([k, v]) =>
+      `<h4>${k}</h4><ul>${v.map(t => `<li>${t}</li>`).join("")}</ul>`
     ).join("")}
   `;
 }
