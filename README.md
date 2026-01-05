@@ -31,7 +31,10 @@ Split group expenses, calculate settlements, and share results instantly.
 
 ## 🚀 Usage
 
-1. Add names and paid amounts
-2. Click **Calculate**
-3. Share the link — results appear automatically on open
+1. Enter a name and the amount paid
+2. Click **Add**
+3. Repeat for all people
+4. Results are calculated **automatically**
+5. Share the link — anyone opening it will see the results instantly
 
+💡 If you add a name that already exists, you can choose to **add to** or **replace** the existing amount.
