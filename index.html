@@ -58,6 +58,7 @@
     h1 {
       font-size: 1.4rem;
       margin: 0;
+      cursor: pointer;
     }
 
     button {
@@ -150,7 +151,7 @@
   <div class="container">
 
     <header>
-      <h1>💸 <span id="title"></span></h1>
+      <h1 onclick="clearAll()">💸 <span id="title"></span></h1>
       <div>
         <button class="secondary" onclick="toggleLang()">🌐</button>
         <button class="secondary" onclick="toggleDark()">🌙</button>
@@ -170,6 +171,9 @@
     <div class="card">
       <button class="secondary" onclick="copyLink()" id="shareBtn"></button>
       <button class="secondary" onclick="generateQR()" id="qrBtn"></button>
+      <button class="secondary" onclick="clearAll()" id="clearBtn"></button>
+      <button class="secondary" onclick="undoClear()" id="undoBtn" style="display:none"></button>
+
       <div id="output"></div>
       <div id="qr"></div>
     </div>
@@ -192,11 +196,13 @@ const dict = {
     eachPays: "Each pays",
     share: "Share",
     qr: "QR",
+    clear: "Clear",
+    undo: "Undo",
     scan: "Scan to open",
     linkCopied: "Link copied",
-    exists: "Person exists.\nOK = Add amount\nCancel = Replace",
-    added: "Amount added",
-    replaced: "Amount replaced"
+    confirmClear: "Clear all data?",
+    cleared: "Cleared",
+    restored: "Restored"
   },
   ar: {
     title: "قسمة الحساب",
@@ -209,11 +215,13 @@ const dict = {
     eachPays: "نصيب الفرد",
     share: "مشاركة",
     qr: "رمز QR",
+    clear: "مسح الكل",
+    undo: "تراجع",
     scan: "امسح لفتح الرابط",
     linkCopied: "تم نسخ الرابط",
-    exists: "الاسم موجود.\nموافق = إضافة المبلغ\nإلغاء = استبدال",
-    added: "تمت إضافة المبلغ",
-    replaced: "تم استبدال المبلغ"
+    confirmClear: "هل تريد مسح كل البيانات؟",
+    cleared: "تم المسح",
+    restored: "تمت الاستعادة"
   }
 };
 
@@ -226,6 +234,7 @@ let people = [];
 let editIndex = null;
 let currentLang = "en";
 let isDecoding = false;
+let lastSnapshot = null;
 
 /* ------------------ Elements ------------------ */
 const nameInput = document.getElementById("name");
@@ -234,6 +243,7 @@ const peopleList = document.getElementById("peopleList");
 const output = document.getElementById("output");
 const qr = document.getElementById("qr");
 const toast = document.getElementById("toast");
+const undoBtn = document.getElementById("undoBtn");
 
 /* ------------------ UI ------------------ */
 function applyLang() {
@@ -241,9 +251,11 @@ function applyLang() {
   document.getElementById("title").textContent = t("title");
   nameInput.placeholder = t("name");
   amountInput.placeholder = t("paid");
-  document.getElementById("addBtn").textContent = t("add");
-  document.getElementById("shareBtn").textContent = t("share");
-  document.getElementById("qrBtn").textContent = t("qr");
+  addBtn.textContent = t("add");
+  shareBtn.textContent = t("share");
+  qrBtn.textContent = t("qr");
+  clearBtn.textContent = t("clear");
+  undoBtn.textContent = t("undo");
   render();
   calculate();
 }
@@ -253,13 +265,6 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2500);
-}
-
-function normalizeName(name) {
-  if (/^[A-Za-z]/.test(name)) {
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  }
-  return name;
 }
 
 /* ------------------ Dark Mode ------------------ */
@@ -278,7 +283,7 @@ function toggleLang() {
 
 /* ------------------ URL State ------------------ */
 function encodeState() {
-  if (isDecoding) return;
+  if (isDecoding || !people.length) return;
   const state = { v: 2, people, lang: currentLang };
   location.hash = "data=" + btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
@@ -290,7 +295,6 @@ function decodeState() {
     const decoded = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(6)))));
     people = decoded.people || [];
     currentLang = decoded.lang || "en";
-    applyLang();
   } catch {}
   isDecoding = false;
 }
@@ -299,34 +303,18 @@ applyLang();
 
 /* ------------------ CRUD ------------------ */
 function addPerson() {
-  const name = normalizeName(nameInput.value.trim());
+  const name = nameInput.value.trim();
   const amount = parseFloat(amountInput.value);
   if (!name || isNaN(amount)) return;
 
-  const idx = people.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
-
-  if (idx !== -1 && editIndex === null) {
-    const add = confirm(t("exists"));
-    people[idx].amount = add ? people[idx].amount + amount : amount;
-    showToast(add ? t("added") : t("replaced"));
-  } else if (editIndex !== null) {
-    people[editIndex] = { name, amount };
-    editIndex = null;
-  } else {
-    people.push({ name, amount });
-  }
+  people.push({ name, amount });
 
   nameInput.value = "";
   amountInput.value = "";
+
   render();
   calculate();
   encodeState();
-}
-
-function editPerson(i) {
-  nameInput.value = people[i].name;
-  amountInput.value = people[i].amount;
-  editIndex = i;
 }
 
 function deletePerson(i) {
@@ -344,7 +332,6 @@ function render() {
       <div class="list-item">
         <span>${p.name} — ${p.amount}</span>
         <div class="actions">
-          <button class="secondary" onclick="editPerson(${i})">${t("edit")}</button>
           <button onclick="deletePerson(${i})">${t("del")}</button>
         </div>
       </div>`;
@@ -378,6 +365,39 @@ function calculate() {
   }
 
   output.innerHTML = html;
+}
+
+/* ------------------ Clear / Undo ------------------ */
+function clearAll() {
+  if (!people.length) return;
+  if (!confirm(t("confirmClear"))) return;
+
+  lastSnapshot = {
+    people: JSON.parse(JSON.stringify(people)),
+    lang: currentLang
+  };
+
+  people = [];
+  output.innerHTML = "";
+  qr.innerHTML = "";
+  undoBtn.style.display = "inline-block";
+
+  history.replaceState(null, "", location.pathname);
+  render();
+  showToast(t("cleared"));
+}
+
+function undoClear() {
+  if (!lastSnapshot) return;
+
+  people = lastSnapshot.people;
+  currentLang = lastSnapshot.lang;
+  lastSnapshot = null;
+
+  undoBtn.style.display = "none";
+  applyLang();
+  encodeState();
+  showToast(t("restored"));
 }
 
 /* ------------------ Share ------------------ */
