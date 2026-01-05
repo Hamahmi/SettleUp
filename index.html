@@ -15,6 +15,7 @@
       --accent: #2563eb;
       --border: #dddddd;
       --toast: #111111;
+      --danger: #dc2626;
     }
 
     body.dark {
@@ -24,6 +25,7 @@
       --accent: #60a5fa;
       --border: #334155;
       --toast: #000000;
+      --danger: #ef4444;
     }
 
     * {
@@ -63,7 +65,7 @@
 
     button {
       background: var(--accent);
-      color: #fff;
+      color: #ffffff;
       border: none;
       padding: 8px 12px;
       border-radius: 6px;
@@ -74,6 +76,11 @@
       background: transparent;
       color: var(--accent);
       border: 1px solid var(--accent);
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: #ffffff;
     }
 
     .card {
@@ -127,7 +134,7 @@
       left: 50%;
       transform: translateX(-50%);
       background: var(--toast);
-      color: #fff;
+      color: #ffffff;
       padding: 10px 14px;
       border-radius: 8px;
       opacity: 0;
@@ -171,7 +178,7 @@
     <div class="card">
       <button class="secondary" onclick="copyLink()" id="shareBtn"></button>
       <button class="secondary" onclick="generateQR()" id="qrBtn"></button>
-      <button class="secondary" onclick="clearAll()" id="clearBtn"></button>
+      <button class="danger" onclick="clearAll()" id="clearBtn"></button>
       <button class="secondary" onclick="undoClear()" id="undoBtn" style="display:none"></button>
 
       <div id="output"></div>
@@ -200,6 +207,9 @@ const dict = {
     undo: "Undo",
     scan: "Scan to open",
     linkCopied: "Link copied",
+    exists: "Person exists.\nOK = Add amount\nCancel = Replace",
+    added: "Amount added",
+    replaced: "Amount replaced",
     confirmClear: "Clear all data?",
     cleared: "Cleared",
     restored: "Restored"
@@ -219,6 +229,9 @@ const dict = {
     undo: "تراجع",
     scan: "امسح لفتح الرابط",
     linkCopied: "تم نسخ الرابط",
+    exists: "الاسم موجود.\nموافق = إضافة المبلغ\nإلغاء = استبدال",
+    added: "تمت إضافة المبلغ",
+    replaced: "تم استبدال المبلغ",
     confirmClear: "هل تريد مسح كل البيانات؟",
     cleared: "تم المسح",
     restored: "تمت الاستعادة"
@@ -248,7 +261,7 @@ const undoBtn = document.getElementById("undoBtn");
 /* ------------------ UI ------------------ */
 function applyLang() {
   document.body.dir = currentLang === "ar" ? "rtl" : "ltr";
-  document.getElementById("title").textContent = t("title");
+  title.textContent = t("title");
   nameInput.placeholder = t("name");
   amountInput.placeholder = t("paid");
   addBtn.textContent = t("add");
@@ -265,6 +278,13 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2500);
+}
+
+function normalizeName(name) {
+  if (/^[A-Za-z]/.test(name)) {
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  }
+  return name;
 }
 
 /* ------------------ Dark Mode ------------------ */
@@ -293,8 +313,8 @@ function decodeState() {
   isDecoding = true;
   try {
     const decoded = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(6)))));
-    people = decoded.people || [];
-    currentLang = decoded.lang || "en";
+    if (Array.isArray(decoded.people)) people = decoded.people;
+    if (decoded.lang) currentLang = decoded.lang;
   } catch {}
   isDecoding = false;
 }
@@ -303,11 +323,22 @@ applyLang();
 
 /* ------------------ CRUD ------------------ */
 function addPerson() {
-  const name = nameInput.value.trim();
+  const name = normalizeName(nameInput.value.trim());
   const amount = parseFloat(amountInput.value);
   if (!name || isNaN(amount)) return;
 
-  people.push({ name, amount });
+  const idx = people.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+
+  if (idx !== -1 && editIndex === null) {
+    const add = confirm(t("exists"));
+    people[idx].amount = add ? people[idx].amount + amount : amount;
+    showToast(add ? t("added") : t("replaced"));
+  } else if (editIndex !== null) {
+    people[editIndex] = { name, amount };
+    editIndex = null;
+  } else {
+    people.push({ name, amount });
+  }
 
   nameInput.value = "";
   amountInput.value = "";
@@ -315,6 +346,12 @@ function addPerson() {
   render();
   calculate();
   encodeState();
+}
+
+function editPerson(i) {
+  nameInput.value = people[i].name;
+  amountInput.value = people[i].amount;
+  editIndex = i;
 }
 
 function deletePerson(i) {
@@ -332,6 +369,7 @@ function render() {
       <div class="list-item">
         <span>${p.name} — ${p.amount}</span>
         <div class="actions">
+          <button class="secondary" onclick="editPerson(${i})">${t("edit")}</button>
           <button onclick="deletePerson(${i})">${t("del")}</button>
         </div>
       </div>`;
@@ -348,23 +386,35 @@ function calculate() {
   const total = people.reduce((s, p) => s + p.amount, 0);
   const share = +(total / people.length).toFixed(2);
 
-  const bal = people.map(p => ({ name: p.name, b: +(p.amount - share).toFixed(2) }));
+  const bal = people.map(p => ({
+    name: p.name,
+    b: +(p.amount - share).toFixed(2)
+  }));
+
   const cred = bal.filter(x => x.b > 0);
   const debt = bal.filter(x => x.b < 0).map(x => ({ name: x.name, b: -x.b }));
 
   let i = 0, j = 0;
-  let html = `<p><strong>${t("eachPays")}:</strong> ${share}</p>`;
+  const grouped = {};
 
   while (i < debt.length && j < cred.length) {
     const amt = Math.min(debt[i].b, cred[j].b);
-    html += `<p>${debt[i].name} → ${cred[j].name} : ${amt.toFixed(2)}</p>`;
+    grouped[debt[i].name] ??= [];
+    grouped[debt[i].name].push(
+      `${debt[i].name} → ${cred[j].name} : ${amt.toFixed(2)}`
+    );
     debt[i].b -= amt;
     cred[j].b -= amt;
-    if (!debt[i].b) i++;
-    if (!cred[j].b) j++;
+    if (debt[i].b === 0) i++;
+    if (cred[j].b === 0) j++;
   }
 
-  output.innerHTML = html;
+  output.innerHTML = `
+    <p><strong>${t("eachPays")}:</strong> ${share}</p>
+    ${Object.entries(grouped).map(([k, v]) =>
+      `<h4>${k}</h4><ul>${v.map(x => `<li>${x}</li>`).join("")}</ul>`
+    ).join("")}
+  `;
 }
 
 /* ------------------ Clear / Undo ------------------ */
@@ -378,6 +428,7 @@ function clearAll() {
   };
 
   people = [];
+  editIndex = null;
   output.innerHTML = "";
   qr.innerHTML = "";
   undoBtn.style.display = "inline-block";
